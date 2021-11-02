@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <math.h>
 #include "memallocator.h"
 
 typedef struct handle 
@@ -26,79 +25,72 @@ int meminit(void *pMemory, int size)
 	head = (handle*)pMemory;
 	head->size = memgetminimumsize() - size;
 	head->next = NULL;
+	last = head;
 	return 0;
 }
 
-void* memalloc(int size)
+handle* find(int size)
 {
-	void *ptr = NULL;
-	handle *cur = head, *buf = NULL, *fit = NULL;
-	if (!head || size < 0)
+	handle *cur = last;
+	if (!head || size <= 0)
 		return NULL;
-	if (last)
-		cur = last->next;
 	while (cur)
 	{
 		if (-cur->size >= size)
 		{
-			fit = cur;
-			break;
+			last = cur;
+			return cur;
 		}
-		buf = cur;
 		cur = cur->next;
 	}
-	if (!fit)
+	cur = head;
+	while (cur != last)
 	{
-		if (last)
+		if (-cur->size >= size)
 		{
-			cur = head;
-			while (cur != last->next)
-			{
-				if (-cur->size >= size)
-				{
-					fit = cur;
-					break;
-				}
-				buf = cur;
-				cur = cur->next;
-			}
-			if (!fit)
-				return NULL;
+			last = cur;
+			return cur;
 		}
-		else
-			return NULL;
+		cur = cur->next;
 	}
-	ptr = (void*)(fit + 1);
+	return NULL;
+}
+
+void* memalloc(int size)
+{
+	handle *fit = find(size);
+	if (!fit)
+		return NULL;
+	void *ptr = (void*)(fit + 1);
 	fit->size = -fit->size;
-	if (fit->size - size > memgetblocksize())
+	if (fit->size - size > memgetblocksize()) 
 	{
-		buf = (handle*)((char*)ptr + size);
+		handle *buf = (handle*)((char*)ptr + size);
 		buf->next = fit->next;
 		buf->size = -(fit->size - size - memgetblocksize());
 		fit->next = buf;
 		fit->size = size;
 	}
-	last = fit;
 	return ptr;
 }
 
 void memfree(void *p)
 {
-	handle *cur = head, *prev = NULL;
-	while (cur) 
-	{
-		if ((char*)p > (char*)(cur + 1)) 
-		{
-			prev = cur;
-			cur = cur->next;
-		}
-		else if ((char*)p == (char*)(cur + 1))
-			break;
-		else
-			return;
-	}
-	if (!cur || cur->size < 0)
+	handle *cur = (handle*)p - 1, *prev = NULL;
+	if (!p || !cur || cur->size < 0)
 		return;
+	if (last == cur)
+		last = head;
+	if (cur != head)
+	{
+		prev = head;
+		while (prev->next)
+		{
+			if (prev->next == cur)
+				break;
+			prev = prev->next;
+		}
+	}
 	if (prev && prev->size < 0) 
 	{
 		prev->size = -(-prev->size + cur->size + memgetblocksize());
@@ -109,18 +101,18 @@ void memfree(void *p)
 	{
 		if (prev && prev->size < 0)
 			cur = prev;
-		cur->size = -(abs(cur->size) + abs(cur->next->size) + memgetblocksize());
+		cur->size = -(-cur->size - cur->next->size + memgetblocksize());
 		cur->next = cur->next->next;
 	}
 }
 
 void memdone() 
 {
-	handle *h = head;
-	while (h) 
+	while (head) 
 	{
-		if (h->size > 0)
-			fprintf(stdout, "Leak: %d bytes at %p\n", h->size, h);
-		h = h->next;
+		if (head->size > 0)
+			fprintf(stderr, "Leak: %d bytes at %p\n", head->size, head);
+		head = head->next;
 	}
+	last = NULL;
 }

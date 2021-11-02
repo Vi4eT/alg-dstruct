@@ -13,13 +13,13 @@ int main(void)
 	void *p[ITERS] = { NULL }, *pin = NULL;
 	if (fopen_s(&f, "output.csv", "w"))
 		return 1;
-	pin = malloc((ITERS + 1 + memgetblocksize() + memgetminimumsize()) * ITERS / 2);
+	pin = malloc((ITERS + 1 + memgetblocksize() + memgetminimumsize()) * ITERS);
 	if (!pin)
 	{
 		fclose(f);
 		return 1;
 	}
-	if (meminit(pin, (ITERS + 1 + memgetblocksize() + memgetminimumsize()) * ITERS / 2))
+	if (meminit(pin, (ITERS + 1 + memgetblocksize() + memgetminimumsize()) * ITERS))
 	{
 		free(pin);
 		fclose(f);
@@ -29,25 +29,30 @@ int main(void)
 	for (i = 1; i <= ITERS; i++)
 	{
 		QueryPerformanceCounter(&c1);
-		for (j = 0; j < i; j++)
-			p[j] = malloc(j);
-		for (j = 0; j < i; j++)
-			free(p[j]);
+		for (j = 1; j < i; j++)
+		{
+			p[j] = malloc(rand() % ITERS);
+			if (j % 5 == 0)
+				free(p[j - 1]);
+		}
+		for (j = 1; j < i; j++)
+			if (j % 5 != 0)
+				free(p[j - 1]);
 		QueryPerformanceCounter(&c2);
 		t1 = (c2.QuadPart - c1.QuadPart) / (double)freq.QuadPart;
 		QueryPerformanceCounter(&c1);
-		for (j = 0; j < i; j++)
+		for (j = 1; j < i; j++)
 		{
-			p[j] = memalloc(j);
-			if (!p[j])
-				printf("%d\n", j);
+			p[j] = memalloc(rand() % ITERS);
+			if (j % 5 == 0)
+				memfree(p[j - 1]);
 		}
-		for (j = 0; j < i; j++)
+		for (j = 1; j < i; j++)
 			memfree(p[j]);
 		QueryPerformanceCounter(&c2);
-		memdone();
 		fprintf(f, "%lf;%lf\n", t1, (c2.QuadPart - c1.QuadPart) / (double)freq.QuadPart);
 	}
+	memdone();
 	free(pin);
 	fclose(f);
 	return 0;
