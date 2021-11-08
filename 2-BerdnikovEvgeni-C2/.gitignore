@@ -1,0 +1,9 @@
+Debug
+Release
+.vs
+packages
+*.sln
+*.vcxproj*
+*.csv
+*.m
+*.asv
