@@ -1,7 +1,7 @@
 /*
   CPU: QuadCore AMD A10-9600P, 2400 MHz
   RAM: Samsung 4+2 GB DDR4 1866 MHz 13-13-13-31
-  SSD: WD Blue WDS500G2B0A-00SM50 (500 ца, SATA-III)
+  SSD: WD Blue WDS500G2B0A-00SM50 (500 GB, SATA-III)
   OS: Microsoft Windows 10 Pro 10.0.19043.1288 (Win10 21H1 May 2021 Update)
 
   Test results:
